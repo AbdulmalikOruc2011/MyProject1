@@ -1,98 +1,145 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+type Player = 'X' | 'O' | null;
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
+const WINNING_LINES: number[][] = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
+];
+
+function calculateWinner(squares: Player[]): Player {
+  for (const [a, b, c] of WINNING_LINES) {
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
+    }
   }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
+  return null;
 }
 
-export default function HomeScreen() {
+export default function TicTacToeScreen() {
+  const [board, setBoard] = useState<Player[]>(Array(9).fill(null));
+  const [isXNext, setIsXNext] = useState<boolean>(true);
+
+  const winner = calculateWinner(board);
+  const isDraw = !winner && board.every((cell) => cell !== null);
+
+  const handlePress = (index: number) => {
+    if (board[index] || winner) return;
+
+    const nextBoard = [...board];
+    nextBoard[index] = isXNext ? 'X' : 'O';
+    setBoard(nextBoard);
+    setIsXNext(!isXNext);
+  };
+
+  const resetGame = () => {
+    setBoard(Array(9).fill(null));
+    setIsXNext(true);
+  };
+
+  let statusText = `Novbe: ${isXNext ? 'X' : 'O'}`;
+  if (winner) {
+    statusText = `Qalib: ${winner}!`;
+  } else if (isDraw) {
+    statusText = 'Hec-hece!';
+  }
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <View style={styles.container}>
+      <Text style={styles.title}>Tic Tac Toe</Text>
+      <Text style={styles.status}>{statusText}</Text>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      <View style={styles.board}>
+        {board.map((cell, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.cell}
+            onPress={() => handlePress(index)}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.cellText,
+                cell === 'X' ? styles.xColor : styles.oColor,
+              ]}
+            >
+              {cell}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+        <Text style={styles.resetText}>Yeniden basla</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
+    backgroundColor: '#121212',
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    padding: 20,
   },
   title: {
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 10,
   },
-  code: {
-    textTransform: 'uppercase',
+  status: {
+    fontSize: 22,
+    color: '#e0e0e0',
+    marginBottom: 25,
+    fontWeight: '600',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  board: {
+    width: 300,
+    height: 300,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#2c2c2c',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cell: {
+    width: 100,
+    height: 100,
+    borderWidth: 1.5,
+    borderColor: '#444444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cellText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+  },
+  xColor: {
+    color: '#4fc3f7',
+  },
+  oColor: {
+    color: '#ff8a65',
+  },
+  resetButton: {
+    marginTop: 30,
+    backgroundColor: '#2979ff',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  resetText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
